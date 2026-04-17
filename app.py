@@ -74,7 +74,7 @@ page = st.sidebar.radio("Go to",
 )
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("**Developed By:** Data Engineering Team")
+st.sidebar.markdown("**Developed By:** Rudransh Pardeshi")
 st.sidebar.markdown("Demonstrating core Data Warehousing techniques using synthetic patient flow data.")
 
 # --- PAGE 1: CONCEPTS OVERVIEW ---
