@@ -1,3 +1,7 @@
 streamlit
 pandas
 plotly
+matplotlib
+numpy
+jinja2
+python-docx
