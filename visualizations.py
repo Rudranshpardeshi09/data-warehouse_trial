@@ -78,6 +78,42 @@ def render_dice_concept_diagram():
     """
     render_mermaid(mermaid_code, height=150)
 
+def render_rollup_concept_diagram():
+    mermaid_code = """
+    graph LR
+    classDef data fill:#9bf6ff,stroke:#333,stroke-width:2px,color:#000;
+    classDef action fill:#ffd6a5,stroke:#333,stroke-width:2px,color:#000;
+    classDef res fill:#caffbf,stroke:#333,stroke-width:2px,color:#000;
+    
+    A[Data Cube<br/>Granularity: Quarter]:::data -->|Aggregate to Year| B(Roll Up Operation):::action
+    B --> C[Summarized Cube<br/>Granularity: Year]:::res
+    """
+    render_mermaid(mermaid_code, height=150)
+
+def render_rolldown_concept_diagram():
+    mermaid_code = """
+    graph LR
+    classDef data fill:#9bf6ff,stroke:#333,stroke-width:2px,color:#000;
+    classDef action fill:#ffd6a5,stroke:#333,stroke-width:2px,color:#000;
+    classDef res fill:#caffbf,stroke:#333,stroke-width:2px,color:#000;
+    
+    A[Data Cube<br/>Granularity: Quarter]:::data -->|Expand to Month| B(Drill Down Operation):::action
+    B --> C[Detailed Cube<br/>Granularity: Month]:::res
+    """
+    render_mermaid(mermaid_code, height=150)
+
+def render_pivot_concept_diagram():
+    mermaid_code = """
+    graph LR
+    classDef data fill:#9bf6ff,stroke:#333,stroke-width:2px,color:#000;
+    classDef action fill:#ffd6a5,stroke:#333,stroke-width:2px,color:#000;
+    classDef res fill:#caffbf,stroke:#333,stroke-width:2px,color:#000;
+    
+    A[Data Cube<br/>X: Service, Y: Age]:::data -->|Rotate Axes| B(Pivot Operation):::action
+    B --> C[Rotated View<br/>X: Age, Y: Service]:::res
+    """
+    render_mermaid(mermaid_code, height=150)
+
 # --- SCHEMA DIAGRAMS ---
 
 def render_star_schema_diagram():
@@ -140,12 +176,12 @@ def render_fact_constellation_diagram():
 
 # --- CHARTS ---
 
-def plot_animated_3d_cube(cube_df, measure_col):
+def plot_animated_3d_cube(cube_df, measure_col, z_col='quarter'):
     fig = px.scatter_3d(
         cube_df, 
         x='service_name', 
         y='age_group', 
-        z='quarter',
+        z=z_col,
         color=measure_col, 
         size=measure_col,
         size_max=40,
@@ -160,7 +196,7 @@ def plot_animated_3d_cube(cube_df, measure_col):
         scene=dict(
             xaxis=dict(title='Service', backgroundcolor="rgb(20, 24, 30)"),
             yaxis=dict(title='Age', backgroundcolor="rgb(20, 24, 30)"),
-            zaxis=dict(title='Quarter', backgroundcolor="rgb(20, 24, 30)"),
+            zaxis=dict(title=z_col.capitalize(), backgroundcolor="rgb(20, 24, 30)"),
             camera=dict(
                 eye=dict(x=1.5, y=1.5, z=1.5)
             )
@@ -191,6 +227,17 @@ def plot_dice_scatter(dice_df):
         hover_data=['name'],
         title='Dice Analysis: Satisfaction vs Stay Length',
         color_discrete_sequence=px.colors.qualitative.Set3
+    )
+    fig.update_layout(template="plotly_dark", title_x=0.5)
+    return fig
+
+def plot_pivot_heatmap(pivot_df, measure_col):
+    fig = px.imshow(
+        pivot_df,
+        text_auto=True,
+        aspect="auto",
+        title=f'Pivot Analysis: {measure_col.replace("_", " ").title()} Heatmap',
+        color_continuous_scale='Viridis'
     )
     fig.update_layout(template="plotly_dark", title_x=0.5)
     return fig

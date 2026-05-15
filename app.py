@@ -146,7 +146,14 @@ elif page == "3. OLAP Operations":
     st.title("⚡ OLAP Techniques")
     st.markdown("Interact with the Data Warehouse models using common OLAP operations.")
     
-    op_tab = st.selectbox("Select OLAP Operation", ["Cube (3D Aggregation)", "Slicing (Filtering by one dimension)", "Dicing (Filtering by multiple dimensions)"])
+    op_tab = st.selectbox("Select OLAP Operation", [
+        "Cube (3D Aggregation)", 
+        "Roll Up (Aggregation to Year)",
+        "Roll Down / Drill Down (Granularity to Month)",
+        "Slicing (Filtering by one dimension)", 
+        "Dicing (Filtering by multiple dimensions)",
+        "Pivot (Rotating axes)"
+    ])
     
     df_star = denormalize_star()
     
@@ -174,7 +181,14 @@ elif page == "3. OLAP Operations":
         sliced_df = df_star[df_star['service_name'] == service_slice]
         
         st.metric(f"Records after slicing by {service_slice}", len(sliced_df))
-        st.plotly_chart(vis.plot_slice_stay_length(sliced_df, service_slice), use_container_width=True)
+        
+        measure = st.radio("Select Measure for Slicing", ["Average Satisfaction", "Average Stay Length"], horizontal=True)
+        if measure == "Average Satisfaction":
+            cube = sliced_df.groupby(['service_name', 'age_group', 'quarter'])['satisfaction'].mean().reset_index()
+            st.plotly_chart(vis.plot_animated_3d_cube(cube, 'satisfaction'), use_container_width=True)
+        else:
+            cube = sliced_df.groupby(['service_name', 'age_group', 'quarter'])['length_of_stay'].mean().reset_index()
+            st.plotly_chart(vis.plot_animated_3d_cube(cube, 'length_of_stay'), use_container_width=True)
 
     elif op_tab == "Dicing (Filtering by multiple dimensions)":
         st.subheader("Dicing")
@@ -189,6 +203,54 @@ elif page == "3. OLAP Operations":
         if services and age_groups:
             diced_df = df_star[(df_star['service_name'].isin(services)) & (df_star['age_group'].isin(age_groups))]
             st.metric("Records after dicing", len(diced_df))
-            st.plotly_chart(vis.plot_dice_scatter(diced_df), use_container_width=True)
+            
+            measure = st.radio("Select Measure for Dicing", ["Average Satisfaction", "Average Stay Length"], horizontal=True)
+            if measure == "Average Satisfaction":
+                cube = diced_df.groupby(['service_name', 'age_group', 'quarter'])['satisfaction'].mean().reset_index()
+                st.plotly_chart(vis.plot_animated_3d_cube(cube, 'satisfaction'), use_container_width=True)
+            else:
+                cube = diced_df.groupby(['service_name', 'age_group', 'quarter'])['length_of_stay'].mean().reset_index()
+                st.plotly_chart(vis.plot_animated_3d_cube(cube, 'length_of_stay'), use_container_width=True)
         else:
             st.warning("Please select at least one value for both dimensions to dice the data.")
+
+    elif op_tab == "Roll Up (Aggregation to Year)":
+        st.subheader("Roll Up (Aggregation)")
+        vis.render_rollup_concept_diagram()
+        
+        st.markdown("We are rolling up the **Time dimension** from `Quarter` to `Year`, aggregating the measure at a higher conceptual level.")
+        measure = st.radio("Select Measure for Roll Up", ["Average Satisfaction", "Average Stay Length"], horizontal=True)
+        
+        if measure == "Average Satisfaction":
+            rollup_cube = df_star.groupby(['service_name', 'age_group', 'year'])['satisfaction'].mean().reset_index()
+            st.plotly_chart(vis.plot_animated_3d_cube(rollup_cube, 'satisfaction', z_col='year'), use_container_width=True)
+        else:
+            rollup_cube = df_star.groupby(['service_name', 'age_group', 'year'])['length_of_stay'].mean().reset_index()
+            st.plotly_chart(vis.plot_animated_3d_cube(rollup_cube, 'length_of_stay', z_col='year'), use_container_width=True)
+
+    elif op_tab == "Roll Down / Drill Down (Granularity to Month)":
+        st.subheader("Roll Down (Drill Down)")
+        vis.render_rolldown_concept_diagram()
+        
+        st.markdown("We are drilling down the **Time dimension** from `Quarter` to `Month`, analyzing the data at a finer granularity.")
+        measure = st.radio("Select Measure for Roll Down", ["Average Satisfaction", "Average Stay Length"], horizontal=True)
+        
+        if measure == "Average Satisfaction":
+            rolldown_cube = df_star.groupby(['service_name', 'age_group', 'month'])['satisfaction'].mean().reset_index()
+            st.plotly_chart(vis.plot_animated_3d_cube(rolldown_cube, 'satisfaction', z_col='month'), use_container_width=True)
+        else:
+            rolldown_cube = df_star.groupby(['service_name', 'age_group', 'month'])['length_of_stay'].mean().reset_index()
+            st.plotly_chart(vis.plot_animated_3d_cube(rolldown_cube, 'length_of_stay', z_col='month'), use_container_width=True)
+
+    elif op_tab == "Pivot (Rotating axes)":
+        st.subheader("Pivot")
+        vis.render_pivot_concept_diagram()
+        
+        st.markdown("Pivoting transforms the cube into a 2D cross-tabulation, swapping rows and columns for a new perspective.")
+        measure = st.radio("Select Measure to Pivot", ["Average Satisfaction", "Average Stay Length"], horizontal=True)
+        
+        val_col = 'satisfaction' if measure == "Average Satisfaction" else 'length_of_stay'
+        pivot_df = df_star.pivot_table(values=val_col, index='service_name', columns='age_group', aggfunc='mean')
+        
+        st.dataframe(pivot_df.style.background_gradient(cmap='viridis'), use_container_width=True)
+        st.plotly_chart(vis.plot_pivot_heatmap(pivot_df, val_col), use_container_width=True)
